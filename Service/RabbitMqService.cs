@@ -10,13 +10,15 @@ public class RabbitMqService
     private readonly IConnection _connection;
     private readonly IRabbitMqChannel _channel;
 
+    private const string emptyString = "";
+
     public RabbitMqService(IConnection connection, IRabbitMqChannel channel)
     {
         _connection = connection;
         _channel = channel;
     }
 
-    public void SendMessage(string message, string queueName, IBasicProperties? basicProperties = null)
+    public void SendMessage(string message, string queueName, IBasicProperties? basicProperties = null, string exchange = emptyString)
     {
         var body = Encoding.UTF8.GetBytes(message);
         if (basicProperties == null)
@@ -24,7 +26,7 @@ public class RabbitMqService
             var model = _connection.CreateModel();
             basicProperties = model.CreateBasicProperties();
         }
-        _channel.BasicPublish(exchange: "", routingKey: queueName, basicProperties: basicProperties, body: body);
+        _channel.BasicPublish(exchange: exchange, routingKey: queueName, basicProperties: basicProperties, body: body);
     }
 
     public string ReceiveMessage(string queueName)
