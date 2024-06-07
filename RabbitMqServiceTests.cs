@@ -58,5 +58,6 @@ public class RabbitMqServiceTests
 
         // Assert
         result.Should().Be(message);
+        mockChannel.Verify(m => m.BasicAck(mockBasicGetResult.DeliveryTag, false), Times.Once);
     }
 }
