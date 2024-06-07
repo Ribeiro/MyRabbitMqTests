@@ -3,6 +3,7 @@ using FluentAssertions;
 using Moq;
 using RabbitMQ.Client;
 using System.Text;
+using MyRabbitMqTest.Server;
 
 namespace MyRabbitMqTest;
 
@@ -11,8 +12,18 @@ public class RabbitMqServiceTests
     private const string queueName = "testQueue";
     private const string message = "Hello, RabbitMQ!";
 
+    private readonly InMemoryRabbitMqServer _inMemoryRabbitMqServer;
+
+    public RabbitMqServiceTests()
+    {
+        using (_inMemoryRabbitMqServer = new InMemoryRabbitMqServer())
+        {
+            _inMemoryRabbitMqServer.DeclareQueue(queueName);
+        }
+    }
+
     [Fact]
-    public void SendMessage_ShouldPublishMessageToQueue()
+    void SendMessage_ShouldPublishMessageToQueue()
     {
         // Arrange
         var mockConnection = new Mock<IConnection>();
@@ -39,7 +50,7 @@ public class RabbitMqServiceTests
     }
 
     [Fact]
-    public void ReceiveMessage_ShouldReturnMessageFromQueue()
+    void ReceiveMessage_ShouldReturnMessageFromQueue()
     {
         // Arrange
         var mockConnection = new Mock<IConnection>();
@@ -57,4 +68,14 @@ public class RabbitMqServiceTests
         result.Should().Be(message);
         mockChannel.Verify(m => m.BasicAck(mockBasicGetResult.DeliveryTag, false), Times.Once);
     }
+
+    [Fact]
+    async Task Test()
+    {
+        _inMemoryRabbitMqServer.PublishMessage(queueName, message);
+
+        var messageFromQueue = await _inMemoryRabbitMqServer.ConsumeMessageAsync(queueName);
+        messageFromQueue.Should().Be(message);
+    }
+
 }
