@@ -50,7 +50,7 @@ public class RabbitMqServiceTests
         var message = "Hello, RabbitMQ!";
         var body = Encoding.UTF8.GetBytes(message);
 
-        var mockBasicGetResult = new BasicGetResult(ulong.MaxValue, false, "", "", 0, null, body);
+        var mockBasicGetResult = new BasicGetResult(ulong.MaxValue, false, string.Empty, string.Empty, 0, null, body);
         mockChannel.Setup(m => m.BasicGet(queueName, false)).Returns(mockBasicGetResult);
 
         // Act
