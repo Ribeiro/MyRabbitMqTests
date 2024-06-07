@@ -20,4 +20,8 @@ public class RabbitMqChannel : IRabbitMqChannel
     {
         return _channel.BasicGet(queue, autoAck);
     }
+    public void BasicAck(ulong deliveryTag, bool multiple)
+    {
+        _channel.BasicAck(deliveryTag, multiple);
+    }
 }

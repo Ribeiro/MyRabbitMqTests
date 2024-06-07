@@ -29,10 +29,13 @@ public class RabbitMqService
 
     public string ReceiveMessage(string queueName)
     {
-        var result = _channel.BasicGet(queueName, true);
+        var result = _channel.BasicGet(queueName, false);
         if (result == null) return string.Empty;
 
         var message = Encoding.UTF8.GetString(result.Body.ToArray());
+
+        _channel.BasicAck(result.DeliveryTag, false);
+
         return message;
     }
 }
