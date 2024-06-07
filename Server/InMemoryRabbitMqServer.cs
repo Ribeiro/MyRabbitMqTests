@@ -5,22 +5,22 @@ namespace MyRabbitMqTest.Server;
 
 public class InMemoryRabbitMqServer : IDisposable
 {
-    private readonly ConcurrentDictionary<string, Queue<byte[]>> _queues;
+    private readonly ConcurrentDictionary<string, ConcurrentQueue<Stream>> _queues;
     private bool _disposed = false;
 
     public InMemoryRabbitMqServer()
     {
-        _queues = new ConcurrentDictionary<string, Queue<byte[]>>();
+        _queues = new ConcurrentDictionary<string, ConcurrentQueue<Stream>>();
     }
 
     public void DeclareQueue(string queueName)
     {
-        _queues.TryAdd(queueName, new Queue<byte[]>());
+        _queues.TryAdd(queueName, new ConcurrentQueue<Stream>());
     }
 
     public void PublishMessage(string queueName, string message)
     {
-        var body = Encoding.UTF8.GetBytes(message);
+        var body = new MemoryStream(Encoding.UTF8.GetBytes(message));
         _queues[queueName].Enqueue(body);
     }
 
@@ -33,16 +33,22 @@ public async Task<string?> ConsumeMessageAsync(string queueName)
 
         if (queue.TryDequeue(out var body))
         {
-            return Encoding.UTF8.GetString(body);
+            using (var reader = new StreamReader(body, Encoding.UTF8))
+            {
+                return await reader.ReadToEndAsync();
+            }
         }
 
         // Wait for a message to be enqueued
-        await Task.Delay(100); // Adjust delay as needed
+        await Task.Delay(500); // Adjust delay as needed
 
         // Try dequeue again
         if (queue.TryDequeue(out body))
         {
-            return Encoding.UTF8.GetString(body);
+            using (var reader = new StreamReader(body, Encoding.UTF8))
+            {
+                return await reader.ReadToEndAsync();
+            }
         }
 
         return null; // No message available
@@ -52,6 +58,19 @@ public async Task<string?> ConsumeMessageAsync(string queueName)
     {
         if (!_disposed)
         {
+            if (disposing)
+            {
+                // Dispose managed resources
+                foreach (var queue in _queues.Values)
+                {
+                    while (queue.TryDequeue(out var stream))
+                    {
+                        stream.Dispose();
+                    }
+                }
+                _queues.Clear();
+            }
+
             // Dispose unmanaged resources
             _disposed = true;
         }
@@ -62,4 +81,5 @@ public async Task<string?> ConsumeMessageAsync(string queueName)
         Dispose(true);
         GC.SuppressFinalize(this);
     }
+
 }
